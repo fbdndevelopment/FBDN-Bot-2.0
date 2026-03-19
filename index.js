@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require("@discordjs/voice");
-const play = require("play-dl");
+const ytdl = require("ytdl-core");
+const ytSearch = require("yt-search");
 
 const client = new Client({
   intents: [
