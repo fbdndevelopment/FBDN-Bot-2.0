@@ -1,3 +1,6 @@
+// 🔥 FORCE yt-dlp to update
+process.env.YTDL_NO_UPDATE = "false";
+
 const express = require("express");
 const app = express();
 
@@ -8,22 +11,26 @@ app.listen(3000, () => console.log("🌐 Web server running"));
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { DisTube } = require("distube");
 const { YtDlpPlugin } = require("@distube/yt-dlp");
-const ffmpeg = require("ffmpeg-static");
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
 });
 
-// 🎵 DisTube (stable music system)
+// 🔥 FINAL DISTUBE CONFIG (FIXED EVERYTHING)
 const distube = new DisTube(client, {
-  plugins: [new YtDlpPlugin()],
   emitNewSongOnly: true,
   ffmpeg: {
-    path: ffmpeg,
+    path: require("ffmpeg-static")
   },
+  plugins: [
+    new YtDlpPlugin({
+      update: true,      // 🔥 auto update yt-dlp
+      cookies: true      // 🔥 helps bypass YouTube issues
+    })
+  ]
 });
 
-// 🎵 Slash commands
+// 🎵 Commands
 const commands = [
   new SlashCommandBuilder()
     .setName("play")
@@ -38,7 +45,7 @@ const commands = [
     .setDescription("Skip the current song"),
   new SlashCommandBuilder()
     .setName("stop")
-    .setDescription("Stop music and leave VC")
+    .setDescription("Stop music")
 ].map(cmd => cmd.toJSON());
 
 client.once("ready", async () => {
@@ -54,7 +61,6 @@ client.once("ready", async () => {
   console.log("✅ Slash commands ready");
 });
 
-// 🎮 COMMAND HANDLER
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -86,7 +92,7 @@ client.on("interactionCreate", async interaction => {
   if (interaction.commandName === "skip") {
     try {
       distube.skip(interaction.guild);
-      interaction.reply("⏭️ Skipped song");
+      interaction.reply("⏭️ Skipped");
     } catch {
       interaction.reply("❌ Nothing to skip");
     }
@@ -95,14 +101,14 @@ client.on("interactionCreate", async interaction => {
   if (interaction.commandName === "stop") {
     try {
       distube.stop(interaction.guild);
-      interaction.reply("⏹️ Stopped music");
+      interaction.reply("⏹️ Stopped");
     } catch {
       interaction.reply("❌ Nothing playing");
     }
   }
 });
 
-// 🎧 EVENTS
+// 🎧 Events
 distube
   .on("playSong", (queue, song) => {
     queue.textChannel.send(`🎶 Now playing: ${song.name}`);
@@ -111,8 +117,8 @@ distube
     queue.textChannel.send(`➕ Added: ${song.name}`);
   })
   .on("error", (channel, error) => {
-    console.error("DISTUBE ERROR:", error);
-    if (channel) channel.send("❌ Music error occurred.");
+    console.error("DISTUBE FULL ERROR:", error);
+    if (channel) channel.send(`❌ ${error.message}`);
   });
 
 client.login(process.env.DISCORD_TOKEN);
