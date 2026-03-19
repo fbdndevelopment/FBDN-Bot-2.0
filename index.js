@@ -1,3 +1,10 @@
+const express = require("express");
+const app = express();
+
+// 🌐 Keeps Railway alive
+app.get("/", (req, res) => res.send("Bot is alive"));
+app.listen(3000, () => console.log("🌐 Web server running"));
+
 const { 
   Client, 
   GatewayIntentBits, 
@@ -24,7 +31,7 @@ const client = new Client({
   ]
 });
 
-// Slash command
+// 🎵 Slash command
 const commands = [
   new SlashCommandBuilder()
     .setName("play")
@@ -71,7 +78,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply("❌ No results found.");
       }
 
-      // 🔥 FIXED STREAM (important)
+      // 🔥 Stable stream
       const stream = ytdl(video.url, {
         filter: "audioonly",
         quality: "highestaudio",
