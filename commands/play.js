@@ -1,8 +1,3 @@
-const ytdl = require("ytdl-core");
-const ytSearch = require("yt-search");
-
-// inside play command:
-
 const search = await ytSearch(query);
 const video = search.videos[0];
 
