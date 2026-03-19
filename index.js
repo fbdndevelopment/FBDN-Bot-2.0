@@ -33,9 +33,12 @@ client.on("interactionCreate", async interaction => {
     const player = createAudioPlayer();
 
     // 🔥 THIS AUDIO ALWAYS WORKS
-    const resource = createAudioResource(
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-    );
+  const resource = createAudioResource(
+  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+);
+
+player.play(resource);
+connection.subscribe(player);
 
     player.play(resource);
     connection.subscribe(player);
