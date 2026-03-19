@@ -1,7 +1,6 @@
 {
-  "name": "fbdn-bot",
+  "name": "music-bot",
   "version": "1.0.0",
-  "description": "Music + Moderation Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
