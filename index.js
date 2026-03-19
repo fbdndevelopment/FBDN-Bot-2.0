@@ -63,7 +63,7 @@ client.on("interactionCreate", async interaction => {
       });
 
       const player = createAudioPlayer();
-      const resource = createAudioResource(stream.stream, {
+      const resource = createAudioResource(stream);
         inputType: stream.type
       });
 
