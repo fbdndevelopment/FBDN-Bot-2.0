@@ -9,7 +9,9 @@ const {
 const { 
   joinVoiceChannel, 
   createAudioPlayer, 
-  createAudioResource 
+  createAudioResource,
+  StreamType,
+  AudioPlayerStatus
 } = require("@discordjs/voice");
 
 const ytdl = require("ytdl-core");
@@ -22,7 +24,6 @@ const client = new Client({
   ]
 });
 
-// Slash command setup
 const commands = [
   new SlashCommandBuilder()
     .setName("play")
@@ -61,7 +62,7 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply();
 
     try {
-      // 🔍 Search YouTube
+      // 🔍 Search
       const search = await ytSearch(query);
       const video = search.videos[0];
 
@@ -69,7 +70,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply("❌ No results found.");
       }
 
-      // 🎵 Create stream
+      // 🎵 Stream
       const stream = ytdl(video.url, {
         filter: "audioonly",
         quality: "highestaudio",
@@ -84,15 +85,27 @@ client.on("interactionCreate", async (interaction) => {
       });
 
       const player = createAudioPlayer();
-      const resource = createAudioResource(stream);
+
+      const resource = createAudioResource(stream, {
+        inputType: StreamType.Arbitrary
+      });
 
       player.play(resource);
       connection.subscribe(player);
 
+      // 🛑 Error handling (prevents crash)
+      player.on("error", error => {
+        console.error("Audio Error:", error);
+      });
+
+      player.on(AudioPlayerStatus.Idle, () => {
+        connection.destroy();
+      });
+
       interaction.editReply(`🎶 Now playing: ${video.title}`);
 
     } catch (err) {
-      console.error(err);
+      console.error("Play Error:", err);
       interaction.editReply("❌ Error playing song.");
     }
   }
