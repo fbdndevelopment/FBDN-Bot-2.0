@@ -29,9 +29,21 @@ const commands = [
     .setName("play")
     .setDescription("Play a song")
     .addStringOption(option =>
-      option.setName("song")
-        .setDescription("Song name")
-        .setRequired(true)
+      option.setName("song").setDescription("Song name").setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName("kick")
+    .setDescription("Kick a user")
+    .addUserOption(option =>
+      option.setName("target").setDescription("User").setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName("ban")
+    .setDescription("Ban a user")
+    .addUserOption(option =>
+      option.setName("target").setDescription("User").setRequired(true)
     )
 ].map(cmd => cmd.toJSON());
 
