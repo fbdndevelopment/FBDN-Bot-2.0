@@ -24,26 +24,15 @@ const client = new Client({
   ]
 });
 
+// Slash command
 const commands = [
   new SlashCommandBuilder()
     .setName("play")
     .setDescription("Play a song")
     .addStringOption(option =>
-      option.setName("song").setDescription("Song name").setRequired(true)
-    ),
-
-  new SlashCommandBuilder()
-    .setName("kick")
-    .setDescription("Kick a user")
-    .addUserOption(option =>
-      option.setName("target").setDescription("User").setRequired(true)
-    ),
-
-  new SlashCommandBuilder()
-    .setName("ban")
-    .setDescription("Ban a user")
-    .addUserOption(option =>
-      option.setName("target").setDescription("User").setRequired(true)
+      option.setName("song")
+        .setDescription("Song name")
+        .setRequired(true)
     )
 ].map(cmd => cmd.toJSON());
 
@@ -74,7 +63,7 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply();
 
     try {
-      // 🔍 Search
+      // 🔍 Search YouTube
       const search = await ytSearch(query);
       const video = search.videos[0];
 
@@ -82,11 +71,16 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply("❌ No results found.");
       }
 
-      // 🎵 Stream
+      // 🔥 FIXED STREAM (important)
       const stream = ytdl(video.url, {
         filter: "audioonly",
         quality: "highestaudio",
-        highWaterMark: 1 << 25
+        highWaterMark: 1 << 25,
+        requestOptions: {
+          headers: {
+            cookie: "CONSENT=YES+"
+          }
+        }
       });
 
       // 🔊 Join VC
@@ -99,15 +93,18 @@ client.on("interactionCreate", async (interaction) => {
       const player = createAudioPlayer();
 
       const resource = createAudioResource(stream, {
-        inputType: StreamType.Arbitrary
+        inputType: StreamType.Arbitrary,
+        inlineVolume: true
       });
+
+      resource.volume.setVolume(0.5);
 
       player.play(resource);
       connection.subscribe(player);
 
-      // 🛑 Error handling (prevents crash)
+      // 🛑 Prevent crashes
       player.on("error", error => {
-        console.error("Audio Error:", error);
+        console.error("PLAYER ERROR:", error);
       });
 
       player.on(AudioPlayerStatus.Idle, () => {
@@ -117,7 +114,7 @@ client.on("interactionCreate", async (interaction) => {
       interaction.editReply(`🎶 Now playing: ${video.title}`);
 
     } catch (err) {
-      console.error("Play Error:", err);
+      console.error("PLAY ERROR:", err);
       interaction.editReply("❌ Error playing song.");
     }
   }
