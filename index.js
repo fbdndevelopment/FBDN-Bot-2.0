@@ -1,5 +1,17 @@
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require("discord.js");
-const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require("@discordjs/voice");
+const { 
+  Client, 
+  GatewayIntentBits, 
+  REST, 
+  Routes, 
+  SlashCommandBuilder 
+} = require("discord.js");
+
+const { 
+  joinVoiceChannel, 
+  createAudioPlayer, 
+  createAudioResource 
+} = require("@discordjs/voice");
+
 const ytdl = require("ytdl-core");
 const ytSearch = require("yt-search");
 
@@ -10,7 +22,7 @@ const client = new Client({
   ]
 });
 
-// REGISTER SLASH COMMAND
+// Slash command setup
 const commands = [
   new SlashCommandBuilder()
     .setName("play")
@@ -18,7 +30,8 @@ const commands = [
     .addStringOption(option =>
       option.setName("song")
         .setDescription("Song name")
-        .setRequired(true))
+        .setRequired(true)
+    )
 ].map(cmd => cmd.toJSON());
 
 client.once("ready", async () => {
@@ -31,32 +44,39 @@ client.once("ready", async () => {
     { body: commands }
   );
 
-  console.log("✅ Slash commands registered");
+  console.log("✅ Slash command registered");
 });
 
-client.on("interactionCreate", async interaction => {
+client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === "play") {
     const query = interaction.options.getString("song");
-    const member = interaction.member;
-    const voiceChannel = member.voice.channel;
+    const voiceChannel = interaction.member.voice.channel;
 
     if (!voiceChannel) {
-      return interaction.reply("❌ Join a voice channel first!");
+      return interaction.reply({ content: "❌ Join a voice channel first!", ephemeral: true });
     }
 
-    await interaction.deferReply(); // prevents "application did not respond"
+    await interaction.deferReply();
 
     try {
-      const result = await play.search(query, { limit: 1 });
+      // 🔍 Search YouTube
+      const search = await ytSearch(query);
+      const video = search.videos[0];
 
-      if (!result.length) {
+      if (!video) {
         return interaction.editReply("❌ No results found.");
       }
 
-      const stream = await play.stream(result[0].url);
+      // 🎵 Create stream
+      const stream = ytdl(video.url, {
+        filter: "audioonly",
+        quality: "highestaudio",
+        highWaterMark: 1 << 25
+      });
 
+      // 🔊 Join VC
       const connection = joinVoiceChannel({
         channelId: voiceChannel.id,
         guildId: interaction.guild.id,
@@ -65,13 +85,11 @@ client.on("interactionCreate", async interaction => {
 
       const player = createAudioPlayer();
       const resource = createAudioResource(stream);
-        inputType: stream.type
-      });
 
       player.play(resource);
       connection.subscribe(player);
 
-      interaction.editReply(`🎶 Now playing: ${result[0].title}`);
+      interaction.editReply(`🎶 Now playing: ${video.title}`);
 
     } catch (err) {
       console.error(err);
