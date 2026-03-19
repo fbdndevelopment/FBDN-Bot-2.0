@@ -1,46 +1,31 @@
 const express = require("express");
 const app = express();
 
-// 🌐 Keeps Railway alive
 app.get("/", (req, res) => res.send("Bot is alive"));
 app.listen(3000, () => console.log("🌐 Web server running"));
 
-const { 
-  Client, 
-  GatewayIntentBits, 
-  REST, 
-  Routes, 
-  SlashCommandBuilder 
-} = require("discord.js");
-
-const { 
-  joinVoiceChannel, 
-  createAudioPlayer, 
-  createAudioResource,
-  StreamType,
-  AudioPlayerStatus
-} = require("@discordjs/voice");
-
-const ytdl = require("ytdl-core");
-const ytSearch = require("yt-search");
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require("discord.js");
+const { DisTube } = require("distube");
+const { YtDlpPlugin } = require("@distube/yt-dlp");
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildVoiceStates
-  ]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
 });
 
-// 🎵 Slash command
+// 🎵 DisTube (THIS FIXES EVERYTHING)
+const distube = new DisTube(client, {
+  plugins: [new YtDlpPlugin()],
+  emitNewSongOnly: true,
+});
+
+// Slash commands
 const commands = [
   new SlashCommandBuilder()
     .setName("play")
     .setDescription("Play a song")
     .addStringOption(option =>
-      option.setName("song")
-        .setDescription("Song name")
-        .setRequired(true)
-    )
+      option.setName("song").setDescription("Song name or URL").setRequired(true)
+    ),
 ].map(cmd => cmd.toJSON());
 
 client.once("ready", async () => {
@@ -53,10 +38,11 @@ client.once("ready", async () => {
     { body: commands }
   );
 
-  console.log("✅ Slash command registered");
+  console.log("✅ Slash commands ready");
 });
 
-client.on("interactionCreate", async (interaction) => {
+// 🎵 Play command (HYDRA STYLE)
+client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === "play") {
@@ -70,61 +56,31 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply();
 
     try {
-      // 🔍 Search YouTube
-      const search = await ytSearch(query);
-      const video = search.videos[0];
-
-      if (!video) {
-        return interaction.editReply("❌ No results found.");
-      }
-
-      // 🔥 Stable stream
-      const stream = ytdl(video.url, {
-        filter: "audioonly",
-        quality: "highestaudio",
-        highWaterMark: 1 << 25,
-        requestOptions: {
-          headers: {
-            cookie: "CONSENT=YES+"
-          }
-        }
+      await distube.play(voiceChannel, query, {
+        member: interaction.member,
+        textChannel: interaction.channel,
       });
 
-      // 🔊 Join VC
-      const connection = joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: interaction.guild.id,
-        adapterCreator: interaction.guild.voiceAdapterCreator
-      });
-
-      const player = createAudioPlayer();
-
-      const resource = createAudioResource(stream, {
-        inputType: StreamType.Arbitrary,
-        inlineVolume: true
-      });
-
-      resource.volume.setVolume(0.5);
-
-      player.play(resource);
-      connection.subscribe(player);
-
-      // 🛑 Prevent crashes
-      player.on("error", error => {
-        console.error("PLAYER ERROR:", error);
-      });
-
-      player.on(AudioPlayerStatus.Idle, () => {
-        connection.destroy();
-      });
-
-      interaction.editReply(`🎶 Now playing: ${video.title}`);
+      interaction.editReply(`🎶 Playing: ${query}`);
 
     } catch (err) {
-      console.error("PLAY ERROR:", err);
+      console.error(err);
       interaction.editReply("❌ Error playing song.");
     }
   }
 });
+
+// 🎧 Events (real music feedback)
+distube
+  .on("playSong", (queue, song) => {
+    queue.textChannel.send(`🎶 Now playing: ${song.name}`);
+  })
+  .on("addSong", (queue, song) => {
+    queue.textChannel.send(`➕ Added to queue: ${song.name}`);
+  })
+  .on("error", (channel, error) => {
+    console.error("DISTUBE ERROR:", error);
+    channel.send("❌ Music error occurred.");
+  });
 
 client.login(process.env.DISCORD_TOKEN);
